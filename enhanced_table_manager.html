@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Enhanced Manager Tabel</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f7fa;
+            padding: 20px;
+        }
+
+        .table-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        .table-header {
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .table-title {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+
+        .search-box {
+            width: 100%;
+            padding: 12px 16px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            background: rgba(255,255,255,0.9);
+            backdrop-filter: blur(10px);
+        }
+
+        .search-box:focus {
+            outline: none;
+            background: white;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            background: #f8f9fa;
+            padding: 16px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid #e9ecef;
+            cursor: pointer;
+            position: relative;
+            user-select: none;
+            transition: background-color 0.2s ease;
+        }
+
+        th:hover {
+            background: #e9ecef;
+        }
+
+        .header-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+        }
+
+        .header-title {
+            flex: 1;
+        }
+
+        .sort-indicator {
+            font-size: 12px;
+            opacity: 0.6;
+        }
+
+        .sort-asc .sort-indicator::after {
+            content: '▲';
+            color: #007bff;
+            opacity: 1;
+        }
+
+        .sort-desc .sort-indicator::after {
+            content: '▼';
+            color: #007bff;
+            opacity: 1;
+        }
+
+        /* Filter Button Styles */
+        .filter-button {
+            position: relative;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 6px;
+            border-radius: 4px;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .filter-button:hover {
+            background: rgba(0, 123, 255, 0.1);
+        }
+
+        .filter-button.active {
+            background: #007bff;
+            color: white;
+        }
+
+        .hamburger-icon {
+            width: 16px;
+            height: 16px;
+            position: relative;
+        }
+
+        .hamburger-icon::before,
+        .hamburger-icon::after,
+        .hamburger-icon {
+            background: currentColor;
+            height: 2px;
+            width: 16px;
+        }
+
+        .hamburger-icon::before {
+            content: '';
+            position: absolute;
+            top: 0;
+        }
+
+        .hamburger-icon::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+        }
+
+        .hamburger-icon {
+            background: currentColor;
+            position: relative;
+        }
+
+        .filter-count {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            background: #dc3545;
+            color: white;
+            border-radius: 50%;
+            width: 18px;
+            height: 18px;
+            font-size: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+        }
+
+        /* Filter Dropdown Styles */
+        .filter-dropdown {
+            position: absolute;
+            top: 100%;
+            right: 0;
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+            z-index: 1000;
+            min-width: 250px;
+            max-width: 350px;
+            max-height: 400px;
+            overflow: hidden;
+            display: none;
+        }
+
+        .filter-dropdown.show {
+            display: block;
+        }
+
+        .filter-header {
+            padding: 12px;
+            border-bottom: 1px solid #dee2e6;
+            background: #f8f9fa;
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        .filter-search {
+            width: 100%;
+            padding: 8px 12px;
+            border: none;
+            border-bottom: 1px solid #dee2e6;
+            font-size: 14px;
+            outline: none;
+        }
+
+        .filter-options {
+            max-height: 250px;
+            overflow-y: auto;
+        }
+
+        .filter-option {
+            display: flex;
+            align-items: center;
+            padding: 8px 12px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            font-size: 14px;
+        }
+
+        .filter-option:hover {
+            background: #f8f9fa;
+        }
+
+        .filter-option input[type="checkbox"] {
+            margin-right: 8px;
+            cursor: pointer;
+        }
+
+        .filter-actions {
+            padding: 12px;
+            border-top: 1px solid #dee2e6;
+            background: #f8f9fa;
+            display: flex;
+            gap: 8px;
+        }
+
+        .filter-btn {
+            flex: 1;
+            padding: 6px 12px;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            background: white;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.2s ease;
+        }
+
+        .filter-btn.primary {
+            background: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+
+        .filter-btn.danger {
+            background: #dc3545;
+            color: white;
+            border-color: #dc3545;
+        }
+
+        .filter-btn:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
+        .no-options {
+            padding: 20px;
+            text-align: center;
+            color: #6c757d;
+            font-style: italic;
+            font-size: 14px;
+        }
+
+        /* Active Filters Display */
+        .active-filters {
+            padding: 12px 20px;
+            background: #e3f2fd;
+            border-bottom: 1px solid #dee2e6;
+            font-size: 14px;
+        }
+
+        .filter-tag {
+            display: inline-flex;
+            align-items: center;
+            background: #007bff;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 12px;
+            margin: 2px 4px;
+            font-size: 12px;
+        }
+
+        .filter-tag .remove-filter {
+            margin-left: 6px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .filter-tag .remove-filter:hover {
+            opacity: 0.7;
+        }
+
+        td {
+            padding: 14px 16px;
+            border-bottom: 1px solid #e9ecef;
+            transition: background-color 0.2s ease;
+        }
+
+        tr:hover td {
+            background: #f8f9fa;
+        }
+
+        tr:nth-child(even) {
+            background: #fbfcfd;
+        }
+
+        .pagination {
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            background: #f8f9fa;
+            border-top: 1px solid #e9ecef;
+        }
+
+        .page-nav {
+            padding: 8px 12px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 14px;
+        }
+
+        .page-nav:hover:not(:disabled) {
+            background: #0056b3;
+            transform: translateY(-1px);
+        }
+
+        .page-nav:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        .page-info {
+            font-weight: 500;
+            color: #495057;
+            margin: 0 10px;
+        }
+
+        .page-input {
+            width: 60px;
+            padding: 6px 8px;
+            border: 2px solid #dee2e6;
+            border-radius: 4px;
+            text-align: center;
+            margin: 0 5px;
+        }
+
+        .page-input:focus {
+            outline: none;
+            border-color: #007bff;
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 40px;
+            color: #6c757d;
+            font-style: italic;
+        }
+
+        .demo-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .demo-title {
+            font-size: 18px;
+            margin-bottom: 15px;
+            color: #495057;
+        }
+
+        .json-schema {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+        }
+
+        .create-table-btn {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            margin-top: 15px;
+        }
+
+        .create-table-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+        }
+
+        /* Scrollbar styling */
+        .filter-options::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .filter-options::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        .filter-options::-webkit-scrollbar-thumb {
+            background: #c1c1c1;
+            border-radius: 3px;
+        }
+
+        .filter-options::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8;
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-section">
+        <h2 class="demo-title">📋 JSON Schema dla Enhanced TableManager</h2>
+        <div class="json-schema" id="jsonSchema"></div>
+        <button class="create-table-btn" onclick="createExampleTable()">Stwórz przykładową tabelę z filtrami</button>
+    </div>
+
+    <div id="tableContainer"></div>
+
+    <script>
+        // Enhanced JSON Schema z where_option
+        const tableSchema = {
+            title: "Nazwa tabeli (opcjonalne)",
+            columns: [
+                {
+                    key: "unikalny_klucz_kolumny",
+                    label: "Wyświetlana nazwa kolumny", 
+                    sortable: true, // czy kolumna może być sortowana
+                    searchable: true, // czy kolumna jest przeszukiwana
+                    where_option: true // czy kolumna ma opcje filtrowania
+                }
+            ],
+            data: [
+                {
+                    "klucz_kolumny1": "wartość",
+                    "klucz_kolumny2": "wartość"
+                }
+            ]
+        };
+
+        // Enhanced TableManager Class
+        class TableManager {
+            constructor(containerId) {
+                this.container = document.getElementById(containerId);
+                this.data = [];
+                this.filteredData = [];
+                this.columns = [];
+                this.currentPage = 1;
+                this.recordsPerPage = 10;
+                this.sortColumn = null;
+                this.sortDirection = 'asc';
+                this.searchTerm = '';
+                this.title = '';
+                this.whereFilters = {}; // Nowy obiekt do przechowywania filtrów
+                this.openDropdown = null; // Tracking aktywnego dropdown
+            }
+
+            // Główna funkcja do stworzenia tabeli
+            createTable(jsonData, recordsPerPage = 10) {
+                this.recordsPerPage = recordsPerPage;
+                this.title = jsonData.title || 'Tabela danych';
+                this.columns = jsonData.columns;
+                this.data = jsonData.data;
+                this.filteredData = [...this.data];
+                this.currentPage = 1;
+                this.whereFilters = {};
+                
+                // Zamknij dropdown przy kliknięciu poza nim
+                document.addEventListener('click', (e) => this.handleOutsideClick(e));
+                
+                this.render();
+            }
+
+            // Renderowanie całej tabeli
+            render() {
+                this.applyFilters();
+                
+                this.container.innerHTML = `
+                    <div class="table-container">
+                        <div class="table-header">
+                            <div class="table-title">${this.title}</div>
+                            <input type="text" 
+                                   class="search-box" 
+                                   placeholder="Wyszukaj w tabeli..." 
+                                   value="${this.searchTerm}"
+                                   oninput="tableManager.handleSearch(this.value)">
+                        </div>
+                        ${this.renderActiveFilters()}
+                        <div class="table-wrapper">
+                            ${this.renderTable()}
+                        </div>
+                        ${this.renderPagination()}
+                    </div>
+                `;
+            }
+
+            // Renderowanie aktywnych filtrów
+            renderActiveFilters() {
+                const activeFilters = Object.entries(this.whereFilters).filter(([key, values]) => values.length > 0);
+                
+                if (activeFilters.length === 0) return '';
+
+                const filterTags = activeFilters.map(([columnKey, values]) => {
+                    const column = this.columns.find(col => col.key === columnKey);
+                    const columnLabel = column ? column.label : columnKey;
+                    
+                    return values.map(value => `
+                        <span class="filter-tag">
+                            ${columnLabel}: ${value}
+                            <span class="remove-filter" onclick="tableManager.removeFilter('${columnKey}', '${value}')">&times;</span>
+                        </span>
+                    `).join('');
+                }).join('');
+
+                return `
+                    <div class="active-filters">
+                        <strong>Aktywne filtry:</strong> ${filterTags}
+                        <button class="filter-btn danger" onclick="tableManager.clearAllFilters()" style="margin-left: 10px;">
+                            Wyczyść wszystkie
+                        </button>
+                    </div>
+                `;
+            }
+
+            // Renderowanie samej tabeli
+            renderTable() {
+                if (this.filteredData.length === 0) {
+                    return '<div class="no-results">Brak wyników do wyświetlenia</div>';
+                }
+
+                const startIndex = (this.currentPage - 1) * this.recordsPerPage;
+                const endIndex = startIndex + this.recordsPerPage;
+                const pageData = this.filteredData.slice(startIndex, endIndex);
+
+                const headers = this.columns.map(col => `
+                    <th class="${this.sortColumn === col.key ? 'sort-' + this.sortDirection : ''}">
+                        <div class="header-content">
+                            <span class="header-title" onclick="tableManager.handleSort('${col.key}')">
+                                ${col.label}
+                            </span>
+                            ${col.where_option ? this.renderFilterButton(col) : ''}
+                            <span class="sort-indicator"></span>
+                        </div>
+                        ${col.where_option ? this.renderFilterDropdown(col) : ''}
+                    </th>
+                `).join('');
+
+                const rows = pageData.map(row => `
+                    <tr>
+                        ${this.columns.map(col => `<td>${row[col.key] || ''}</td>`).join('')}
+                    </tr>
+                `).join('');
+
+                return `
+                    <table>
+                        <thead>
+                            <tr>${headers}</tr>
+                        </thead>
+                        <tbody>
+                            ${rows}
+                        </tbody>
+                    </table>
+                `;
+            }
+
+            // Renderowanie przycisku filtra (hamburger)
+            renderFilterButton(column) {
+                const filterCount = this.whereFilters[column.key] ? this.whereFilters[column.key].length : 0;
+                const isActive = filterCount > 0;
+                
+                return `
+                    <button class="filter-button ${isActive ? 'active' : ''}" 
+                            onclick="tableManager.toggleFilterDropdown('${column.key}', event)">
+                        <div class="hamburger-icon"></div>
+                        ${filterCount > 0 ? `<span class="filter-count">${filterCount}</span>` : ''}
+                    </button>
+                `;
+            }
+
+            // Renderowanie dropdown z opcjami filtra
+            renderFilterDropdown(column) {
+                const uniqueValues = this.getUniqueValues(column.key);
+                const selectedValues = this.whereFilters[column.key] || [];
+                
+                return `
+                    <div class="filter-dropdown" id="dropdown-${column.key}">
+                        <div class="filter-header">${column.label}</div>
+                        <input type="text" 
+                               class="filter-search" 
+                               placeholder="Wyszukaj wartość..."
+                               oninput="tableManager.filterDropdownOptions('${column.key}', this.value)"
+                               onclick="event.stopPropagation()">
+                        <div class="filter-options" id="options-${column.key}">
+                            ${uniqueValues.map(value => `
+                                <label class="filter-option">
+                                    <input type="checkbox" 
+                                           value="${value}" 
+                                           ${selectedValues.includes(value) ? 'checked' : ''}
+                                           onchange="tableManager.handleFilterChange('${column.key}', '${value}', this.checked)">
+                                    ${value}
+                                </label>
+                            `).join('')}
+                        </div>
+                        <div class="filter-actions">
+                            <button class="filter-btn" onclick="tableManager.selectAllFilters('${column.key}')">
+                                Zaznacz wszystko
+                            </button>
+                            <button class="filter-btn danger" onclick="tableManager.clearColumnFilter('${column.key}')">
+                                Wyczyść
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+
+            // Pobieranie unikalnych wartości dla kolumny
+            getUniqueValues(columnKey) {
+                const values = this.data.map(row => row[columnKey]).filter(value => value != null && value !== '');
+                return [...new Set(values)].sort();
+            }
+
+            // Toggle dropdown
+            toggleFilterDropdown(columnKey, event) {
+                event.stopPropagation();
+                
+                const dropdown = document.getElementById(`dropdown-${columnKey}`);
+                const isCurrentlyOpen = dropdown.classList.contains('show');
+                
+                // Zamknij wszystkie dropdown
+                document.querySelectorAll('.filter-dropdown').forEach(dd => dd.classList.remove('show'));
+                
+                if (!isCurrentlyOpen) {
+                    dropdown.classList.add('show');
+                    this.openDropdown = columnKey;
+                } else {
+                    this.openDropdown = null;
+                }
+            }
+
+            // Filtrowanie opcji w dropdown
+            filterDropdownOptions(columnKey, searchTerm) {
+                const uniqueValues = this.getUniqueValues(columnKey);
+                const selectedValues = this.whereFilters[columnKey] || [];
+                const filteredValues = uniqueValues.filter(value => 
+                    value.toString().toLowerCase().includes(searchTerm.toLowerCase())
+                );
+                
+                const optionsContainer = document.getElementById(`options-${columnKey}`);
+                optionsContainer.innerHTML = filteredValues.length > 0 ? 
+                    filteredValues.map(value => `
+                        <label class="filter-option">
+                            <input type="checkbox" 
+                                   value="${value}" 
+                                   ${selectedValues.includes(value) ? 'checked' : ''}
+                                   onchange="tableManager.handleFilterChange('${columnKey}', '${value}', this.checked)">
+                            ${value}
+                        </label>
+                    `).join('') : '<div class="no-options">Brak dopasowań</div>';
+            }
+
+            // Obsługa zmian w filtrze
+            handleFilterChange(columnKey, value, isChecked) {
+                if (!this.whereFilters[columnKey]) {
+                    this.whereFilters[columnKey] = [];
+                }
+                
+                if (isChecked) {
+                    if (!this.whereFilters[columnKey].includes(value)) {
+                        this.whereFilters[columnKey].push(value);
+                    }
+                } else {
+                    this.whereFilters[columnKey] = this.whereFilters[columnKey].filter(v => v !== value);
+                }
+                
+                this.currentPage = 1;
+                this.render();
+            }
+
+            // Zaznacz wszystkie filtry
+            selectAllFilters(columnKey) {
+                const uniqueValues = this.getUniqueValues(columnKey);
+                this.whereFilters[columnKey] = [...uniqueValues];
+                this.currentPage = 1;
+                this.render();
+            }
+
+            // Wyczyść filtr kolumny
+            clearColumnFilter(columnKey) {
+                this.whereFilters[columnKey] = [];
+                this.currentPage = 1;
+                this.render();
+            }
+
+            // Usuń pojedynczy filtr
+            removeFilter(columnKey, value) {
+                if (this.whereFilters[columnKey]) {
+                    this.whereFilters[columnKey] = this.whereFilters[columnKey].filter(v => v !== value);
+                }
+                this.currentPage = 1;
+                this.render();
+            }
+
+            // Wyczyść wszystkie filtry
+            clearAllFilters() {
+                this.whereFilters = {};
+                this.currentPage = 1;
+                this.render();
+            }
+
+            // Zamknij dropdown przy kliknięciu poza nim
+            handleOutsideClick(event) {
+                if (!event.target.closest('.filter-dropdown') && !event.target.closest('.filter-button')) {
+                    document.querySelectorAll('.filter-dropdown').forEach(dd => dd.classList.remove('show'));
+                    this.openDropdown = null;
+                }
+            }
+
+            // Zastosuj wszystkie filtry
+            applyFilters() {
+                let filtered = [...this.data];
+                
+                // Zastosuj where filtry
+                Object.entries(this.whereFilters).forEach(([columnKey, selectedValues]) => {
+                    if (selectedValues.length > 0) {
+                        filtered = filtered.filter(row => selectedValues.includes(row[columnKey]));
+                    }
+                });
+                
+                // Zastosuj wyszukiwanie tekstowe
+                if (this.searchTerm) {
+                    filtered = filtered.filter(row => {
+                        return this.columns.some(col => {
+                            if (!col.searchable) return false;
+                            const value = row[col.key];
+                            return value && value.toString().toLowerCase().includes(this.searchTerm);
+                        });
+                    });
+                }
+                
+                this.filteredData = filtered;
+                
+                // Zastosuj sortowanie
+                if (this.sortColumn) {
+                    this.applySorting();
+                }
+            }
+
+            // Zastosuj sortowanie
+            applySorting() {
+                this.filteredData.sort((a, b) => {
+                    let valueA = a[this.sortColumn];
+                    let valueB = b[this.sortColumn];
+
+                    const numA = parseFloat(valueA);
+                    const numB = parseFloat(valueB);
+                    
+                    if (!isNaN(numA) && !isNaN(numB)) {
+                        valueA = numA;
+                        valueB = numB;
+                    } else {
+                        valueA = valueA ? valueA.toString().toLowerCase() : '';
+                        valueB = valueB ? valueB.toString().toLowerCase() : '';
+                    }
+
+                    let comparison = 0;
+                    if (valueA > valueB) comparison = 1;
+                    if (valueA < valueB) comparison = -1;
+
+                    return this.sortDirection === 'desc' ? -comparison : comparison;
+                });
+            }
+
+            // Obsługa wyszukiwania
+            handleSearch(searchTerm) {
+                this.searchTerm = searchTerm.toLowerCase();
+                this.currentPage = 1;
+                this.render();
+            }
+
+            // Obsługa sortowania
+            handleSort(columnKey) {
+                const column = this.columns.find(col => col.key === columnKey);
+                if (!column || !column.sortable) return;
+
+                if (this.sortColumn === columnKey) {
+                    this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
+                } else {
+                    this.sortColumn = columnKey;
+                    this.sortDirection = 'asc';
+                }
+
+                this.render();
+            }
+
+            // Renderowanie paginacji
+            renderPagination() {
+                const totalPages = Math.ceil(this.filteredData.length / this.recordsPerPage);
+                
+                if (totalPages <= 1) return '';
+
+                const isFirstPage = this.currentPage === 1;
+                const isLastPage = this.currentPage === totalPages;
+
+                return `
+                    <div class="pagination">
+                        <button class="page-nav" 
+                                onclick="tableManager.goToPage(1)" 
+                                ${isFirstPage ? 'disabled' : ''}>
+                            &lt;&lt;
+                        </button>
+                        <button class="page-nav" 
+                                onclick="tableManager.goToPage(${this.currentPage - 1})" 
+                                ${isFirstPage ? 'disabled' : ''}>
+                            &lt;
+                        </button>
+                        
+                        <span class="page-info">
+                            Strona: 
+                            <input type="number" 
+                                   class="page-input" 
+                                   value="${this.currentPage}" 
+                                   min="1" 
+                                   max="${totalPages}"
+                                   onkeypress="tableManager.handlePageInput(event, ${totalPages})">
+                            / ${totalPages}
+                        </span>
+                        
+                        <button class="page-nav" 
+                                onclick="tableManager.goToPage(${this.currentPage + 1})" 
+                                ${isLastPage ? 'disabled' : ''}>
+                            &gt;
+                        </button>
+                        <button class="page-nav" 
+                                onclick="tableManager.goToPage(${totalPages})" 
+                                ${isLastPage ? 'disabled' : ''}>
+                            &gt;&gt;
+                        </button>
+                    </div>
+                `;
+            }
+
+            // Przechodzenie do konkretnej strony
+            goToPage(pageNumber) {
+                const totalPages = Math.ceil(this.filteredData.length / this.recordsPerPage);
+                if (pageNumber >= 1 && pageNumber <= totalPages) {
+                    this.currentPage = pageNumber;
+                    this.render();
+                }
+            }
+
+            // Obsługa wpisywania numeru strony
+            handlePageInput(event, totalPages) {
+                if (event.key === 'Enter') {
+                    const pageNumber = parseInt(event.target.value);
+                    this.goToPage(pageNumber);
+                }
+            }
+        }
+
+        // Inicjalizacja
+        const tableManager = new TableManager('tableContainer');
+
+        // Wyświetlenie schematu JSON
+        document.getElementById('jsonSchema').textContent = JSON.stringify(tableSchema, null, 2);
+
+        // Funkcja do stworzenia przykładowej tabeli z filtrami
+        function createExampleTable() {
+            const exampleData = {
+                title: "📊 Sprzedaż produktów - Raport miesięczny z filtrami",
+                columns: [
+                    { key: "id", label: "ID", sortable: true, searchable: true, where_option: false },
+                    { key: "product", label: "Produkt", sortable: true, searchable: true, where_option: true },
+                    { key: "category", label: "Kategoria", sortable: true, searchable: true, where_option: true },
+                    { key: "price", label: "Cena", sortable: true, searchable: true, where_option: false },
+                    { key: "quantity", label: "Ilość", sortable: true, searchable: true, where_option: true },
+                    { key: "status", label: "Status", sortable: true, searchable: true, where_option: true },
+                    { key: "date", label: "Data", sortable: true, searchable: true, where_option: false }
+                ],
+                data: [
+                    { id: 1, product: "Laptop Dell", category: "Elektronika", price: "2500zł", quantity: "3", status: "Sprzedane", date: "2024-01-15" },
+                    { id: 2, product: "iPhone 15", category: "Elektronika", price: "4200zł", quantity: "2", status: "W magazynie", date: "2024-01-16" },
+                    { id: 3, product: "Monitor Samsung", category: "Elektronika", price: "800zł", quantity: "5", status: "Sprzedane", date: "2024-01-17" },
+                    { id: 4, product: "Klawiatura mechaniczna", category: "Akcesoria", price: "350zł", quantity: "10", status: "Sprzedane", date: "2024-01-18" },
+                    { id: 5, product: "Mysz gamingowa", category: "Akcesoria", price: "200zł", quantity: "8", status: "W magazynie", date: "2024-01-19" },
+                    { id: 6, product: "Tablet iPad", category: "Elektronika", price: "2800zł", quantity: "4", status: "Zamówione", date: "2024-01-20" },
+                    { id: 7, product: "Słuchawki Sony", category: "Audio", price: "450zł", quantity: "6", status: "Sprzedane", date: "2024-01-21" },
+                    { id: 8, product: "Kamera Canon", category: "Foto", price: "3200zł", quantity: "2", status: "W magazynie", date: "2024-01-22" },
+                    { id: 9, product: "Dysk SSD 1TB", category: "Komponenty", price: "400zł", quantity: "12", status: "Sprzedane", date: "2024-01-23" },
+                    { id: 10, product: "Router WiFi", category: "Sieć", price: "250zł", quantity: "7", status: "W magazynie", date: "2024-01-24" },
+                    { id: 11, product: "Powerbank 20000mAh", category: "Akcesoria", price: "120zł", quantity: "15", status: "Sprzedane", date: "2024-01-25" },
+                    { id: 12, product: "Smartwatch Apple", category: "Elektronika", price: "1800zł", quantity: "3", status: "Zamówione", date: "2024-01-26" },
+                    { id: 13, product: "Głośnik Bluetooth", category: "Audio", price: "180zł", quantity: "9", status: "W magazynie", date: "2024-01-27" },
+                    { id: 14, product: "Kabel USB-C", category: "Akcesoria", price: "50zł", quantity: "20", status: "Sprzedane", date: "2024-01-28" },
+                    { id: 15, product: "Ładowarka bezprzewodowa", category: "Akcesoria", price: "150zł", quantity: "11", status: "W magazynie", date: "2024-01-29" },
+                    { id: 16, product: "Mikrofon USB", category: "Audio", price: "300zł", quantity: "4", status: "Zamówione", date: "2024-01-30" },
+                    { id: 17, product: "Webcam 4K", category: "Foto", price: "600zł", quantity: "6", status: "Sprzedane", date: "2024-02-01" },
+                    { id: 18, product: "Hub USB", category: "Akcesoria", price: "80zł", quantity: "25", status: "W magazynie", date: "2024-02-02" },
+                    { id: 19, product: "Switch sieciowy", category: "Sieć", price: "400zł", quantity: "3", status: "Sprzedane", date: "2024-02-03" },
+                    { id: 20, product: "Etui na laptop", category: "Akcesoria", price: "90zł", quantity: "18", status: "W magazynie", date: "2024-02-04" }
+                ]
+            };
+
+            tableManager.createTable(exampleData, 8);
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manager Tabel</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f7fa;
+            padding: 20px;
+        }
+
+        .table-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        .table-header {
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .table-title {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+
+        .search-box {
+            width: 100%;
+            padding: 12px 16px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            background: rgba(255,255,255,0.9);
+            backdrop-filter: blur(10px);
+        }
+
+        .search-box:focus {
+            outline: none;
+            background: white;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            background: #f8f9fa;
+            padding: 16px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid #e9ecef;
+            cursor: pointer;
+            position: relative;
+            user-select: none;
+            transition: background-color 0.2s ease;
+        }
+
+        th:hover {
+            background: #e9ecef;
+        }
+
+        .sort-indicator {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 12px;
+            opacity: 0.6;
+        }
+
+        .sort-asc::after {
+            content: '▲';
+            color: #007bff;
+            opacity: 1;
+        }
+
+        .sort-desc::after {
+            content: '▼';
+            color: #007bff;
+            opacity: 1;
+        }
+
+        td {
+            padding: 14px 16px;
+            border-bottom: 1px solid #e9ecef;
+            transition: background-color 0.2s ease;
+        }
+
+        tr:hover td {
+            background: #f8f9fa;
+        }
+
+        tr:nth-child(even) {
+            background: #fbfcfd;
+        }
+
+        .pagination {
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 15px;
+            background: #f8f9fa;
+            border-top: 1px solid #e9ecef;
+        }
+
+        .page-nav {
+            padding: 8px 12px;
+            background: #007bff;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 14px;
+        }
+
+        .page-nav:hover:not(:disabled) {
+            background: #0056b3;
+            transform: translateY(-1px);
+        }
+
+        .page-nav:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
+        .page-info {
+            font-weight: 500;
+            color: #495057;
+            margin: 0 10px;
+        }
+
+        .page-input {
+            width: 60px;
+            padding: 6px 8px;
+            border: 2px solid #dee2e6;
+            border-radius: 4px;
+            text-align: center;
+            margin: 0 5px;
+        }
+
+        .page-input:focus {
+            outline: none;
+            border-color: #007bff;
+        }
+
+        .no-results {
+            text-align: center;
+            padding: 40px;
+            color: #6c757d;
+            font-style: italic;
+        }
+
+        .demo-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+        }
+
+        .demo-title {
+            font-size: 18px;
+            margin-bottom: 15px;
+            color: #495057;
+        }
+
+        .json-schema {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 6px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+        }
+
+        .create-table-btn {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #28a745, #20c997);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            margin-top: 15px;
+        }
+
+        .create-table-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.3);
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-section">
+        <h2 class="demo-title">📋 JSON Schema dla TableManager</h2>
+        <div class="json-schema" id="jsonSchema"></div>
+        <button class="create-table-btn" onclick="createExampleTable()">Stwórz przykładową tabelę</button>
+    </div>
+
+    <div id="tableContainer"></div>
+
+    <script>
+        // Optymalny JSON Schema dla TableManager
+        const tableSchema = {
+            title: "Nazwa tabeli (opcjonalne)",
+            columns: [
+                {
+                    key: "unikalny_klucz_kolumny",
+                    label: "Wyświetlana nazwa kolumny", 
+                    sortable: true, // czy kolumna może być sortowana
+                    searchable: true // czy kolumna jest przeszukiwana
+                }
+            ],
+            data: [
+                {
+                    "klucz_kolumny1": "wartość",
+                    "klucz_kolumny2": "wartość"
+                }
+            ]
+        };
+
+        // Główna klasa TableManager
+        class TableManager {
+            constructor(containerId) {
+                this.container = document.getElementById(containerId);
+                this.data = [];
+                this.filteredData = [];
+                this.columns = [];
+                this.currentPage = 1;
+                this.recordsPerPage = 10;
+                this.sortColumn = null;
+                this.sortDirection = 'asc';
+                this.searchTerm = '';
+                this.title = '';
+            }
+
+            // Główna funkcja do stworzenia tabeli
+            createTable(jsonData, recordsPerPage = 10) {
+                this.recordsPerPage = recordsPerPage;
+                this.title = jsonData.title || 'Tabela danych';
+                this.columns = jsonData.columns;
+                this.data = jsonData.data;
+                this.filteredData = [...this.data];
+                this.currentPage = 1;
+                
+                this.render();
+            }
+
+            // Renderowanie całej tabeli
+            render() {
+                this.container.innerHTML = `
+                    <div class="table-container">
+                        <div class="table-header">
+                            <div class="table-title">${this.title}</div>
+                            <input type="text" 
+                                   class="search-box" 
+                                   placeholder="Wyszukaj w tabeli..." 
+                                   value="${this.searchTerm}"
+                                   oninput="tableManager.handleSearch(this.value)">
+                        </div>
+                        <div class="table-wrapper">
+                            ${this.renderTable()}
+                        </div>
+                        ${this.renderPagination()}
+                    </div>
+                `;
+            }
+
+            // Renderowanie samej tabeli
+            renderTable() {
+                if (this.filteredData.length === 0) {
+                    return '<div class="no-results">Brak wyników do wyświetlenia</div>';
+                }
+
+                const startIndex = (this.currentPage - 1) * this.recordsPerPage;
+                const endIndex = startIndex + this.recordsPerPage;
+                const pageData = this.filteredData.slice(startIndex, endIndex);
+
+                const headers = this.columns.map(col => `
+                    <th onclick="tableManager.handleSort('${col.key}')" 
+                        class="${this.sortColumn === col.key ? 'sort-' + this.sortDirection : ''}">
+                        ${col.label}
+                        <span class="sort-indicator"></span>
+                    </th>
+                `).join('');
+
+                const rows = pageData.map(row => `
+                    <tr>
+                        ${this.columns.map(col => `<td>${row[col.key] || ''}</td>`).join('')}
+                    </tr>
+                `).join('');
+
+                return `
+                    <table>
+                        <thead>
+                            <tr>${headers}</tr>
+                        </thead>
+                        <tbody>
+                            ${rows}
+                        </tbody>
+                    </table>
+                `;
+            }
+
+            // Renderowanie paginacji
+            renderPagination() {
+                const totalPages = Math.ceil(this.filteredData.length / this.recordsPerPage);
+                
+                if (totalPages <= 1) return '';
+
+                const isFirstPage = this.currentPage === 1;
+                const isLastPage = this.currentPage === totalPages;
+
+                return `
+                    <div class="pagination">
+                        <button class="page-nav" 
+                                onclick="tableManager.goToPage(1)" 
+                                ${isFirstPage ? 'disabled' : ''}>
+                            &lt;&lt;
+                        </button>
+                        <button class="page-nav" 
+                                onclick="tableManager.goToPage(${this.currentPage - 1})" 
+                                ${isFirstPage ? 'disabled' : ''}>
+                            &lt;
+                        </button>
+                        
+                        <span class="page-info">
+                            Strona: 
+                            <input type="number" 
+                                   class="page-input" 
+                                   value="${this.currentPage}" 
+                                   min="1" 
+                                   max="${totalPages}"
+                                   onkeypress="tableManager.handlePageInput(event, ${totalPages})">
+                            / ${totalPages}
+                        </span>
+                        
+                        <button class="page-nav" 
+                                onclick="tableManager.goToPage(${this.currentPage + 1})" 
+                                ${isLastPage ? 'disabled' : ''}>
+                            &gt;
+                        </button>
+                        <button class="page-nav" 
+                                onclick="tableManager.goToPage(${totalPages})" 
+                                ${isLastPage ? 'disabled' : ''}>
+                            &gt;&gt;
+                        </button>
+                    </div>
+                `;
+            }
+
+            // Obsługa wyszukiwania
+            handleSearch(searchTerm) {
+                this.searchTerm = searchTerm.toLowerCase();
+                
+                this.filteredData = this.data.filter(row => {
+                    return this.columns.some(col => {
+                        if (!col.searchable) return false;
+                        const value = row[col.key];
+                        return value && value.toString().toLowerCase().includes(this.searchTerm);
+                    });
+                });
+
+                this.currentPage = 1;
+                this.render();
+            }
+
+            // Obsługa sortowania
+            handleSort(columnKey) {
+                const column = this.columns.find(col => col.key === columnKey);
+                if (!column || !column.sortable) return;
+
+                if (this.sortColumn === columnKey) {
+                    this.sortDirection = this.sortDirection === 'asc' ? 'desc' : 'asc';
+                } else {
+                    this.sortColumn = columnKey;
+                    this.sortDirection = 'asc';
+                }
+
+                this.filteredData.sort((a, b) => {
+                    let valueA = a[columnKey];
+                    let valueB = b[columnKey];
+
+                    // Konwersja na liczby jeśli możliwe
+                    const numA = parseFloat(valueA);
+                    const numB = parseFloat(valueB);
+                    
+                    if (!isNaN(numA) && !isNaN(numB)) {
+                        valueA = numA;
+                        valueB = numB;
+                    } else {
+                        valueA = valueA ? valueA.toString().toLowerCase() : '';
+                        valueB = valueB ? valueB.toString().toLowerCase() : '';
+                    }
+
+                    let comparison = 0;
+                    if (valueA > valueB) comparison = 1;
+                    if (valueA < valueB) comparison = -1;
+
+                    return this.sortDirection === 'desc' ? -comparison : comparison;
+                });
+
+                this.render();
+            }
+
+            // Przechodzenie do konkretnej strony
+            goToPage(pageNumber) {
+                const totalPages = Math.ceil(this.filteredData.length / this.recordsPerPage);
+                if (pageNumber >= 1 && pageNumber <= totalPages) {
+                    this.currentPage = pageNumber;
+                    this.render();
+                }
+            }
+
+            // Obsługa wpisywania numeru strony
+            handlePageInput(event, totalPages) {
+                if (event.key === 'Enter') {
+                    const pageNumber = parseInt(event.target.value);
+                    this.goToPage(pageNumber);
+                }
+            }
+        }
+
+        // Inicjalizacja
+        const tableManager = new TableManager('tableContainer');
+
+        // Wyświetlenie schematu JSON
+        document.getElementById('jsonSchema').textContent = JSON.stringify(tableSchema, null, 2);
+
+        // Funkcja do stworzenia przykładowej tabeli
+        function createExampleTable() {
+            const exampleData = {
+                title: "📊 Sprzedaż produktów - Raport miesięczny",
+                columns: [
+                    { key: "id", label: "ID", sortable: true, searchable: true },
+                    { key: "product", label: "Produkt", sortable: true, searchable: true },
+                    { key: "price", label: "Cena", sortable: true, searchable: true },
+                    { key: "quantity", label: "Ilość", sortable: true, searchable: true },
+                    { key: "total", label: "Razem", sortable: true, searchable: true },
+                    { key: "date", label: "Data", sortable: true, searchable: true }
+                ],
+                data: [
+                    { id: 1, product: "Laptop Dell", price: "2500zł", quantity: 3, total: "7500zł", date: "2024-01-15" },
+                    { id: 2, product: "iPhone 15", price: "4200zł", quantity: 2, total: "8400zł", date: "2024-01-16" },
+                    { id: 3, product: "Monitor Samsung", price: "800zł", quantity: 5, total: "4000zł", date: "2024-01-17" },
+                    { id: 4, product: "Klawiatura mechaniczna", price: "350zł", quantity: 10, total: "3500zł", date: "2024-01-18" },
+                    { id: 5, product: "Mysz gamingowa", price: "200zł", quantity: 8, total: "1600zł", date: "2024-01-19" },
+                    { id: 6, product: "Tablet iPad", price: "2800zł", quantity: 4, total: "11200zł", date: "2024-01-20" },
+                    { id: 7, product: "Słuchawki Sony", price: "450zł", quantity: 6, total: "2700zł", date: "2024-01-21" },
+                    { id: 8, product: "Kamera Canon", price: "3200zł", quantity: 2, total: "6400zł", date: "2024-01-22" },
+                    { id: 9, product: "Dysk SSD 1TB", price: "400zł", quantity: 12, total: "4800zł", date: "2024-01-23" },
+                    { id: 10, product: "Router WiFi", price: "250zł", quantity: 7, total: "1750zł", date: "2024-01-24" },
+                    { id: 11, product: "Powerbank 20000mAh", price: "120zł", quantity: 15, total: "1800zł", date: "2024-01-25" },
+                    { id: 12, product: "Smartwatch Apple", price: "1800zł", quantity: 3, total: "5400zł", date: "2024-01-26" },
+                    { id: 13, product: "Głośnik Bluetooth", price: "180zł", quantity: 9, total: "1620zł", date: "2024-01-27" },
+                    { id: 14, product: "Kabel USB-C", price: "50zł", quantity: 20, total: "1000zł", date: "2024-01-28" },
+                    { id: 15, product: "Ładowarka bezprzewodowa", price: "150zł", quantity: 11, total: "1650zł", date: "2024-01-29" }
+                ]
+            };
+
+            tableManager.createTable(exampleData, 5);
+        }
+    </script>
+</body>
+</html>

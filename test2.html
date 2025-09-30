@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8">
+<title>Tabela z JSON</title>
+<style>
+  body { font-family: Arial, sans-serif; padding: 20px; }
+  table { border-collapse: collapse; width: 100%; margin-top: 10px; }
+  th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+  th { cursor: pointer; background: #f4f4f4; }
+  .pagination { margin-top: 15px; display: flex; gap: 10px; align-items: center; }
+  .pagination input { width: 50px; text-align: center; }
+</style>
+</head>
+<body>
+  <input type="text" id="search" placeholder="Szukaj..." />
+  <div id="table-container"></div>
+  <div class="pagination">
+    <button id="first"><<</button>
+    <button id="prev"><</button>
+    <span id="page-info"></span>
+    <input type="number" id="page-input" min="1" />
+    <button id="go">Idź</button>
+    <button id="next">></button>
+    <button id="last">>></button>
+  </div>
+
+<script>
+function renderTable(data, rowsPerPage = 5) {
+  let currentPage = 1;
+  let sortKey = null;
+  let sortDir = 1; // 1 = rosnąco, -1 = malejąco
+  let filteredRows = [...data.rows];
+
+  const container = document.getElementById("table-container");
+  const searchInput = document.getElementById("search");
+  const pageInfo = document.getElementById("page-info");
+  const pageInput = document.getElementById("page-input");
+
+  function updateTable() {
+    // Sortowanie
+    let rows = [...filteredRows];
+    if (sortKey) {
+      rows.sort((a, b) => {
+        let valA = a[sortKey];
+        let valB = b[sortKey];
+        return valA > valB ? sortDir : valA < valB ? -sortDir : 0;
+      });
+    }
+
+    // Paginacja
+    const totalPages = Math.ceil(rows.length / rowsPerPage) || 1;
+    if (currentPage > totalPages) currentPage = totalPages;
+    const start = (currentPage - 1) * rowsPerPage;
+    const paginatedRows = rows.slice(start, start + rowsPerPage);
+
+    // Render tabeli
+    let html = "<table><thead><tr>";
+    data.columns.forEach(col => {
+      html += `<th data-key="${col.key}">${col.label}${sortKey===col.key ? (sortDir===1 ? ' ▲' : ' ▼') : ''}</th>`;
+    });
+    html += "</tr></thead><tbody>";
+    paginatedRows.forEach(row => {
+      html += "<tr>" + data.columns.map(col => `<td>${row[col.key]}</td>`).join("") + "</tr>";
+    });
+    html += "</tbody></table>";
+    container.innerHTML = html;
+
+    // Info o stronach
+    pageInfo.textContent = `Strona: ${currentPage}/${totalPages}`;
+    pageInput.value = currentPage;
+
+    // Obsługa sortowania
+    container.querySelectorAll("th").forEach(th => {
+      th.addEventListener("click", () => {
+        const key = th.getAttribute("data-key");
+        if (sortKey === key) sortDir *= -1;
+        else { sortKey = key; sortDir = 1; }
+        updateTable();
+      });
+    });
+  }
+
+  // Szukanie
+  searchInput.addEventListener("input", () => {
+    const q = searchInput.value.toLowerCase();
+    filteredRows = data.rows.filter(row =>
+      Object.values(row).some(val => String(val).toLowerCase().includes(q))
+    );
+    currentPage = 1;
+    updateTable();
+  });
+
+  // Paginacja - przyciski
+  document.getElementById("first").onclick = () => { currentPage = 1; updateTable(); };
+  document.getElementById("prev").onclick = () => { if (currentPage>1) currentPage--; updateTable(); };
+  document.getElementById("next").onclick = () => { currentPage++; updateTable(); };
+  document.getElementById("last").onclick = () => { currentPage = Math.ceil(filteredRows.length / rowsPerPage); updateTable(); };
+  document.getElementById("go").onclick = () => {
+    const val = parseInt(pageInput.value);
+    if (!isNaN(val)) currentPage = Math.min(Math.max(val,1), Math.ceil(filteredRows.length / rowsPerPage));
+    updateTable();
+  };
+
+  updateTable();
+}
+
+// --- Przykładowe dane ---
+const data = {
+  columns: [
+    { key: "id", label: "ID", sortable: true },
+    { key: "name", label: "Nazwa", sortable: true },
+    { key: "price", label: "Cena", sortable: true },
+    { key: "category", label: "Kategoria", sortable: true }
+  ],
+  rows: Array.from({length:50}, (_,i)=>({
+    id: i+1,
+    name: "Produkt "+(i+1),
+    price: (Math.floor(Math.random()*200)+1)+"zł",
+    category: ["AGD","RTV","Sport","Inne"][i%4]
+  }))
+};
+
+renderTable(data, 5);
+</script>
+</body>
+</html>
