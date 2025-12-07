@@ -1,0 +1,154 @@
+Możesz to zrobić **dynamicznie**, przekazując kolory z bazy danych do **template** i nadpisując CSS za pomocą **inline `<style>`** lub generując **dynamiczny plik CSS**.
+
+Poniżej masz **najprostszy, praktyczny i działający sposób**.
+
+---
+
+# ✅ **1. Model z kolorami (JSONField)**
+
+```python
+class UserProfile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    colors = models.JSONField(default=dict)
+```
+
+Przykład wartości w kolumnie `colors`:
+
+```json
+{
+    "main-color": "#F54927",
+    "second-color": "#9C402D"
+}
+```
+
+---
+
+# ✅ **2. Pobranie kolorów w widoku i wysłanie do szablonu**
+
+```python
+def dashboard(request):
+    user_profile = UserProfile.objects.get(user=request.user)
+    colors = user_profile.colors
+
+    return render(request, "dashboard.html", {
+        "colors": colors
+    })
+```
+
+---
+
+# ✅ **3. W szablonie nadpisujesz zmienne CSS**
+
+W pliku **dashboard.html** (lub base.html jeśli ma dotyczyć całego UI):
+
+```html
+{% if colors %}
+<style>
+:root {
+    {% for key, value in colors.items %}
+        --{{ key }}: {{ value }};
+    {% endfor %}
+}
+</style>
+{% endif %}
+```
+
+To sprawi, że **statycznie zdefiniowane root** zostaną **nadpisane** tymi z bazy danych.
+
+---
+
+# ⚠️ Ważne: twoje domyślne CSS muszą być załadowane PRZED tym style
+
+Np.:
+
+```html
+<link rel="stylesheet" href="{% static 'css/main.css' %}">
+{% block extra_css %}
+    <!-- tutaj wstrzykujemy kolory -->
+{% endblock %}
+```
+
+Wtedy nadpisanie zadziała.
+
+---
+
+# 🔥 **Efekt**
+
+Każdy użytkownik po zalogowaniu dostaje *swój własny motyw kolorystyczny*.
+
+Domyślny CSS:
+
+```css
+:root {
+    --main-color: #F54921;
+    --second-color: #123456;
+}
+```
+
+Użytkownik ma w DB:
+
+```json
+{
+    "main-color": "#F54927",
+    "second-color": "#9C402D"
+}
+```
+
+Po renderowaniu otrzymujesz finalnie:
+
+```html
+<style>
+:root {
+    --main-color: #F54927;
+    --second-color: #9C402D;
+}
+</style>
+```
+
+Przeglądarka nadpisuje wartości i motyw wygląda inaczej dla każdego usera.
+
+---
+
+# ❗ Alternatywa: dynamiczny CSS endpoint (ładny i czysty)
+
+Jeśli chcesz mieć osobny plik CSS per user:
+
+### urls.py
+
+```python
+path("user-theme.css", views.user_theme_css, name="user_theme_css")
+```
+
+### views.py
+
+```python
+from django.http import HttpResponse
+
+def user_theme_css(request):
+    user_profile = UserProfile.objects.get(user=request.user)
+    colors = user_profile.colors
+
+    css = ":root {\n"
+    for k, v in colors.items():
+        css += f"  --{k}: {v};\n"
+    css += "}"
+
+    return HttpResponse(css, content_type="text/css")
+```
+
+### template
+
+```html
+<link rel="stylesheet" href="{% url 'user_theme_css' %}">
+```
+
+---
+
+Jeżeli chcesz, mogę Ci przygotować:
+
+✔ gotową strukturę projektu
+✔ wersję z cache per user
+✔ fallback na kolory domyślne
+✔ JS, który przełącza motywy
+
+Daj tylko znać!
